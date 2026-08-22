@@ -1,0 +1,6 @@
+{
+  "name": "Project LOOP",
+  "description": "AI Customer-Feedback Intelligence Platform featuring multi-tenant workspace isolation, RBAC, feedback ingestion, grounded AI Q&A, trend analysis, and Voice-of-Customer reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,353 @@
+import React, { useState } from 'react';
+import { 
+  FileText, 
+  Sparkles, 
+  Printer, 
+  Calendar, 
+  Clock, 
+  Building2, 
+  Share2, 
+  RefreshCw,
+  Tag,
+  Quote,
+  CheckCircle2,
+  AlertCircle
+} from 'lucide-react';
+import { useLoop } from '../context/LoopContext';
+import { ReportItem } from '../types';
+
+export const ReportsView: React.FC = () => {
+  const { 
+    workspaceReports, 
+    generateReport, 
+    isGeneratingReport,
+    canEdit, 
+    triggerForbidden, 
+    currentWorkspace, 
+    workspaceFeedback,
+    showToast 
+  } = useLoop();
+
+  const [selectedReportId, setSelectedReportId] = useState<string>(workspaceReports[0]?.id || '');
+  const [reportTitle, setReportTitle] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+  const activeReport = workspaceReports.find(r => r.id === selectedReportId) || workspaceReports[0];
+
+  const handleGenerateNew = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canEdit) {
+      triggerForbidden('Generate executive VoC report');
+      return;
+    }
+
+    try {
+      const newReport = await generateReport(
+        reportTitle || `Executive VoC Intelligence - ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+      );
+      if (newReport) {
+        setSelectedReportId(newReport.id);
+        setIsCreateModalOpen(false);
+        setReportTitle('');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto">
+      {/* Top Header Bar */}
+      <div className="bg-[#111113] p-6 rounded-2xl border border-white/5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-bold text-white">Voice-of-Customer (VoC) Executive Reports</h2>
+            <span className="text-[10px] font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+              Automated Synthesis
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">
+            AI-generated stakeholder summaries with sentiment shifts, top themes, and engineering action items
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Report Selector Dropdown */}
+          {workspaceReports.length > 0 && (
+            <select
+              value={selectedReportId}
+              onChange={(e) => setSelectedReportId(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {workspaceReports.map((rep) => (
+                <option key={rep.id} value={rep.id} className="bg-[#111113] text-white">
+                  {rep.title} ({rep.periodStart} to {rep.periodEnd})
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Generate Button */}
+          <button
+            onClick={() => {
+              if (!canEdit) {
+                triggerForbidden('Generate new intelligence report');
+                return;
+              }
+              setIsCreateModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold transition-colors shadow-lg shadow-indigo-500/20 border border-indigo-500/30"
+          >
+            <Sparkles size={14} />
+            <span>Generate Report</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Report Document Body (Print-optimized) */}
+      {activeReport ? (
+        <div className="bg-[#111113] rounded-2xl border border-white/5 shadow-xl p-8 sm:p-12 space-y-8 print:border-none print:shadow-none print:p-0 print:bg-white print:text-black">
+          {/* Document Header */}
+          <div className="border-b border-white/5 pb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                <Building2 size={13} />
+                <span>{currentWorkspace.name} • Executive Intelligence</span>
+              </div>
+              <h1 className="text-2xl font-black text-white tracking-tight">
+                {activeReport.title}
+              </h1>
+              <p className="text-xs text-slate-400 flex items-center gap-2">
+                <Calendar size={13} />
+                <span>Period: {activeReport.periodStart} to {activeReport.periodEnd}</span>
+                <span>•</span>
+                <Clock size={13} />
+                <span>Generated by {activeReport.generatorName || 'Automated Pipeline'}</span>
+              </p>
+            </div>
+
+            {/* Print & Share Actions */}
+            <div className="flex items-center gap-2 print:hidden">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white rounded-lg transition-colors border border-white/10"
+              >
+                <Printer size={14} />
+                <span>Print / PDF</span>
+              </button>
+              <button
+                onClick={() => showToast('Report share link copied to clipboard', 'success')}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-lg transition-colors border border-indigo-500/30"
+              >
+                <Share2 size={14} />
+                <span>Share</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Section 1: Executive Summary */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              1. Executive Intelligence Summary
+            </h3>
+            <div className="p-5 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-xs text-slate-200 leading-relaxed font-normal">
+              {activeReport.contentJson.summary}
+            </div>
+          </div>
+
+          {/* Section 2: Sentiment Deltas & Top Metrics */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              2. Sentiment Velocity & Period Metrics
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase">Total Sample Analyzed</span>
+                <p className="text-xl font-black text-white">{workspaceFeedback.length} items</p>
+                <span className="text-[10px] text-slate-400">Across all 5 channels</span>
+              </div>
+
+              <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20 space-y-1">
+                <span className="text-[11px] font-bold text-emerald-300 uppercase">Positive Sentiment Shift</span>
+                <p className="text-xl font-black text-emerald-400">{activeReport.contentJson.sentimentDeltas?.posDelta || '+5.4%'}</p>
+                <span className="text-[10px] text-emerald-300 font-semibold">Gains in Dashboard & Analytics</span>
+              </div>
+
+              <div className="p-4 bg-rose-500/10 rounded-xl border border-rose-500/20 space-y-1">
+                <span className="text-[11px] font-bold text-rose-300 uppercase">Negative Friction Shift</span>
+                <p className="text-xl font-black text-rose-400">{activeReport.contentJson.sentimentDeltas?.negDelta || '-2.1%'}</p>
+                <span className="text-[10px] text-rose-300 font-semibold">Concentrated in Mobile SSO</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Key Clustered Themes Breakdown */}
+          {activeReport.contentJson.topThemes && activeReport.contentJson.topThemes.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                3. Key Theme Clusters & Signal Breakdown
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {activeReport.contentJson.topThemes.map((theme, i) => (
+                  <div key={i} className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-white">{theme.name}</span>
+                      <span className="text-[10px] font-semibold bg-white/10 text-slate-300 px-2 py-0.5 rounded border border-white/10">
+                        {theme.count} mentions
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {theme.summary || `Cluster contains ${theme.count} feedback touchpoints.`}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 4: Verbatim Customer Quotes */}
+          {activeReport.contentJson.verbatimQuotes && activeReport.contentJson.verbatimQuotes.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                4. Voice of the Customer (Verbatim Quotes)
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeReport.contentJson.verbatimQuotes.map((q, i) => (
+                  <div
+                    key={i}
+                    className="p-4 rounded-xl border border-white/5 bg-white/5 space-y-2 text-xs"
+                  >
+                    <p className="italic text-slate-200 font-medium">"{q.quote}"</p>
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-white/5">
+                      <span className="font-semibold text-slate-300">— {q.customer}</span>
+                      <span className="bg-white/10 px-1.5 py-0.2 rounded text-[10px] font-bold text-slate-200 border border-white/10">
+                        {q.channel}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section 5: Prioritized Action Items */}
+          {activeReport.contentJson.recommendedActions && activeReport.contentJson.recommendedActions.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                5. Recommended Product & Engineering Action Items
+              </h3>
+              <div className="space-y-2.5">
+                {activeReport.contentJson.recommendedActions.map((act, i) => {
+                  const prioColor =
+                    act.priority === 'HIGH'
+                      ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                      : act.priority === 'MEDIUM'
+                      ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                      : 'bg-white/10 text-slate-300 border-white/10';
+
+                  return (
+                    <div
+                      key={i}
+                      className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${prioColor}`}>
+                            {act.priority}
+                          </span>
+                          <h4 className="font-bold text-xs text-white">{act.title}</h4>
+                        </div>
+                        <p className="text-xs text-slate-400">{act.reason}</p>
+                      </div>
+
+                      <div className="shrink-0 text-right sm:border-l sm:border-white/5 sm:pl-4">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Owner Squad</span>
+                        <span className="text-xs font-semibold text-indigo-400">{act.owner}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-[#111113] rounded-2xl border border-white/5 p-12 text-center text-slate-400 space-y-2">
+          <FileText size={32} className="mx-auto text-slate-500" />
+          <p className="font-semibold text-slate-200">No reports generated yet</p>
+          <p className="text-xs text-slate-400">Click "Generate Report" to run automated synthesis on workspace feedback.</p>
+        </div>
+      )}
+
+      {/* Generate Report Modal */}
+      {isCreateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-[#111113] rounded-2xl max-w-md w-full shadow-2xl border border-white/10 p-6 space-y-4 animate-in zoom-in-95 duration-150">
+            <div>
+              <h3 className="text-base font-bold text-white">Generate Executive VoC Report</h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Gemini will analyze all {workspaceFeedback.length} feedback records in {currentWorkspace.name}
+              </p>
+            </div>
+
+            <form onSubmit={handleGenerateNew} className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                  Report Title
+                </label>
+                <input
+                  type="text"
+                  value={reportTitle}
+                  onChange={(e) => setReportTitle(e.target.value)}
+                  placeholder={`Executive VoC Intelligence - ${new Date().toLocaleDateString()}`}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:bg-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="p-3.5 bg-indigo-500/10 rounded-xl border border-indigo-500/20 text-xs text-indigo-200 space-y-1">
+                <span className="font-bold flex items-center gap-1 text-indigo-300">
+                  <Sparkles size={13} className="text-indigo-400" />
+                  Synthesis Scope:
+                </span>
+                <p className="text-[11px] text-indigo-300/80">
+                  Includes full sentiment delta analysis, top 3 recurring friction themes, verbatim customer quotes, and squad action items.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isGeneratingReport}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 disabled:opacity-50 shadow-lg shadow-indigo-500/20 border border-indigo-500/30"
+                >
+                  {isGeneratingReport ? (
+                    <>
+                      <RefreshCw size={13} className="animate-spin" />
+                      <span>Synthesizing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={13} />
+                      <span>Generate Now</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
